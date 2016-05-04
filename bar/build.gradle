@@ -6,3 +6,16 @@ description = """ The foo project"""
 
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
+
+jar {
+    def manifestClasspath = configurations.runtime.collect { it.getName() }.join(' ')
+    manifest {
+        attributes  'Implementation-Title': "Bar thing",
+                    'Implementation-Version': '0.0.1',
+                    'Built-By': System.getProperty('user.name'),
+                    'Built-Date': new Date(),
+                    'Built-JDK': System.getProperty('java.version'),
+                    'Built-Gradle': gradle.gradleVersion,
+                    'Class-Path': manifestClasspath
+    }
+}

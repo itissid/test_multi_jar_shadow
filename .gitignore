@@ -1,1 +1,6 @@
 *.swp
+
+# gradle related stuff
+*/build/*
+build/
+.gradle

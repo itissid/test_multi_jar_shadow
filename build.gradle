@@ -22,8 +22,24 @@ targetCompatibility = 1.7
 shadowJar {
         baseName = 'test-project'
         classifier = ''
+
+}
+task foo << {
+    subprojects.tasks.each {
+        println it.tasks.java 
+    }
 }
 
+
+repositories {
+     mavenCentral()
+     maven { url "http://repository.cloudera.com/artifactory/cloudera-repos/" }
+
+}
+
+dependencies {
+    compile subprojects
+}
 
 subprojects {
         apply plugin: 'java'
@@ -38,3 +54,44 @@ subprojects {
             testCompile group: 'junit', name: 'junit', version:'4.11'
         }
 }
+
+
+jar {
+    def manifestClasspath = configurations.runtime.collect { it.getName() }.join(' ')
+    manifest {
+        attributes  'Implementation-Title': "Test thing",
+                    'Implementation-Version': '0.0.1',
+                    'Built-By': System.getProperty('user.name'),
+                    'Built-Date': new Date(),
+                    'Built-JDK': System.getProperty('java.version'),
+                    'Built-Gradle': gradle.gradleVersion,
+                    'Class-Path': manifestClasspath
+    }
+}
+// Failed attempts adding to source sets does nothing
+//sourceSets {
+//    main {
+//        java {
+//            srcDirs = subprojects.sourceSets.main.java.srcDirs.flatten()
+//        }
+//    }
+//}
+// Attempted to make a uber jar from just Foo and Bar thin jars, but that needs the subprojects dependencies being referenced in parents and sounds twisted
+//ext.sharedManifest = manifest {
+//    from subprojects.tasks.jar.manifest
+//}
+//
+//
+//task uberJar(type: Jar, dependsOn: subprojects.tasks['testClasses'] ) {
+//    baseName = 'uberJar'
+//    subprojects.each { subproject ->
+//        from subproject.configurations.archives.allArtifacts.files.collect {
+//            zipTree(it)
+//        }
+//        from files(subproject.tasks["test"].testClassesDir)
+//        from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+//    }
+//    manifest { from(sharedManifest) }
+//
+//}
+
