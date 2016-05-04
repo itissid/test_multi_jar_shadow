@@ -1,0 +1,8 @@
+plugins {
+    id 'java'
+}
+
+description = """ The foo project""" 
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
