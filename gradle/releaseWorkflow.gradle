@@ -1,0 +1,66 @@
+
+apply plugin: 'org.ajoberstar.release-opinion'
+import org.ajoberstar.grgit.Grgit
+import org.ajoberstar.gradle.git.release.opinion.Strategies
+import groovy.swing.SwingBuilder
+
+ext{
+    grgit = Grgit.open(project.file('.'))
+    revision = grgit.head().abbreviatedId
+    currentBranch = grgit.branch.getCurrent().getName()
+}
+
+release {
+    System.setProperty("org.ajoberstar.grgit.auth.interactive.allow", "false")
+    grgit = Grgit.open(project.file('.'))
+    tasks.release.dependsOn 'build'
+
+    versionStrategy Strategies.FINAL
+    defaultVersionStrategy = Strategies.FINAL
+
+    tagStrategy {
+        generateMessage = { version -> "Gradle release version: $version.version" }
+    }
+}
+
+def askUser() {
+    def response = 'n'
+    new SwingBuilder().edt {
+      dialog(modal: true, // Otherwise the build will continue running before you closed the dialog
+          title: 'User input required to continue releasing', // Dialog title
+          alwaysOnTop: true, // pretty much what the name says
+          resizable: false, // Don't allow the user to resize the dialog
+          locationRelativeTo: null, // Place dialog in center of the screen
+          pack: true, // We need to pack the dialog (so it will take the size of it's children
+          show: true // Let's show it
+      ) {
+        vbox { // Put everything below each other
+          label(text: "Uncommitted files in repo, do you want to continue? [Y/n]")
+          input = textField()
+          button(defaultButton: true, text: 'OK', actionPerformed: {
+            response = input.text ; // Set response variable to value of input field
+            dispose(); // Close dialog
+          })
+        }
+      }
+    }
+    return response
+}
+
+tasks.release.doFirst {
+    if (currentBranch != allowedReleaseBranch) {
+        throw new Exception("Only ${allowedReleaseBranch} branch allowed for release")
+    }
+
+    if (!allowDirtyRepoForRelease.toBoolean() && !grgit.status().clean) {
+        if(isCI.toBoolean() == true) {
+            throw new Exception("Dirty releases not allowed for CI")
+        }
+        else { 
+            def response = askUser()
+            if(!response.equals('Y')) {
+                throw new Exception("Aborting!")
+            } 
+        }
+    }
+}

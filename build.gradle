@@ -15,6 +15,41 @@ plugins {
 
 description = """ The multi project test project """
 
+import org.ajoberstar.gradle.git.release.semver.NearestVersionLocator
+import org.ajoberstar.gradle.git.release.semver.SemVerStrategyState
+import org.ajoberstar.grgit.Grgit
+import org.ajoberstar.gradle.git.release.base.ReleasePluginExtension
+task getVersion << {
+    grgit = Grgit.open(project.file('.'))
+    def tagStrategy = project.extensions.getByType(ReleasePluginExtension).tagStrategy
+    def nvl = new NearestVersionLocator(tagStrategy)
+    println "*****"
+    println nvl.locate(grgit)
+    println grgit.status()
+    println grgit.status().clean
+    ext.version = version
+
+    def nearestVersion = nvl.locate(grgit)
+    println(String.format("Located nearest version: %s", nearestVersion))
+
+        SemVerStrategyState state = new SemVerStrategyState(
+            scopeFromProp: null,
+            stageFromProp: 'final',
+            currentHead: grgit.head(),
+            currentBranch: grgit.branch.current,
+            repoDirty: !grgit.status().clean,
+            nearestVersion: nearestVersion
+        )
+
+        //Version version = StrategyUtil.all(
+         //  normalStrategy, preReleaseStrategy, buildMetadataStrategy).infer(state).toVersion()
+        print nearestVersion.normal.incrementPatchVersion()
+        //one(Normal.USE_SCOPE_PROP, Normal.USE_NEAREST_ANY, Normal.useScope(ChangeScope.PATCH)),
+        //logger.warn('Inferred project: {}, version: {}', project.name, version)
+
+}
+apply from: 'gradle/releaseWorkflow.gradle'
+
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
